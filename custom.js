@@ -39,7 +39,7 @@
       onUpdate: (self) => {
         if (self.direction === -1) {
           showAnim.play();
-          gsap.to(nav, { backgroundColor: '#666666', duration: 0.3 });
+          gsap.to(nav, { backgroundColor: '#000000', duration: 0.3 });
         } else {
           showAnim.reverse();
         }
@@ -504,6 +504,56 @@
     }
   }
 
+  // ——— Init: Promo banner show/hide on scroll ———
+  function initPromoBanner() {
+    const banner = document.querySelector('.promo-banner');
+    const footer = document.querySelector('footer');
+    if (!banner || !footer) return;
+
+    // Set initial hidden state
+    gsap.set(banner, { yPercent: 100, autoAlpha: 0 });
+
+    // Show banner after 1600px of scroll
+    ScrollTrigger.create({
+      start: 1600,
+      end: 'max',
+      onEnter: () =>
+        gsap.to(banner, {
+          yPercent: 0,
+          autoAlpha: 1,
+          duration: 0.4,
+          ease: 'power2.out',
+        }),
+      onLeaveBack: () =>
+        gsap.to(banner, {
+          yPercent: 100,
+          autoAlpha: 0,
+          duration: 0.3,
+          ease: 'power2.in',
+        }),
+    });
+
+    // Hide banner when footer comes into view
+    ScrollTrigger.create({
+      trigger: footer,
+      start: 'top bottom',
+      onEnter: () =>
+        gsap.to(banner, {
+          yPercent: 100,
+          autoAlpha: 0,
+          duration: 0.3,
+          ease: 'power2.in',
+        }),
+      onLeaveBack: () =>
+        gsap.to(banner, {
+          yPercent: 0,
+          autoAlpha: 1,
+          duration: 0.4,
+          ease: 'power2.out',
+        }),
+    });
+  }
+
   // ——— Single DOMContentLoaded ———
   document.addEventListener('DOMContentLoaded', () => {
     initNavbar();
@@ -512,5 +562,6 @@
     initContentRevealScroll();
     initScrollToAnchorLenis();
     initStackingStickyCardsBounce();
+    initPromoBanner();
   });
 })();
