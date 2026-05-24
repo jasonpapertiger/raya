@@ -24,8 +24,9 @@
     const nav = document.querySelector('.navbar');
     if (!nav) return;
 
-    // Read scrolled background color from data attribute, default to black
-    const scrolledBg = nav.getAttribute('data-nav-scrolled-bg') || '#000000';
+    // Detect Transparent Dark variant by its Webflow variant class
+    const isTransparentDark = nav.classList.contains('w-variant-ce0d0008-a985-44ad-1e96-a2fc061a227a');
+    const scrolledBg = isTransparentDark ? '#ffffff' : '#000000';
 
     const showAnim = gsap
       .from(nav, {
