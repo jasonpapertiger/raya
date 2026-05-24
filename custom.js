@@ -340,14 +340,12 @@
     const currentTier = getCurrentViewportTier();
     window.viewportTier = currentTier;
 
-    // Kill existing stacking ScrollTriggers
     ScrollTrigger.getAll().forEach((trigger) => {
       cardsSections.forEach((section) => {
         if (section.contains(trigger.trigger)) trigger.kill();
       });
     });
 
-    // Reset card targets
     cardsSections.forEach((section) => {
       section.querySelectorAll('[data-stacking-card-target]').forEach((el) => {
         gsap.killTweensOf(el);
@@ -449,7 +447,6 @@
       return values.length ? values : ['0em', '0em', '0em'];
     }
 
-    // Resize listener (registered once)
     if (!window._hasStackingResizeListener) {
       let last = getCurrentViewportTier();
 
@@ -510,10 +507,8 @@
     const footer = document.querySelector('footer');
     if (!banner || !footer) return;
 
-    // Set initial hidden state
     gsap.set(banner, { y: '100%', autoAlpha: 0 });
 
-    // Show banner after 1600px of scroll
     ScrollTrigger.create({
       start: 1600,
       end: 'max',
@@ -533,7 +528,6 @@
         }),
     });
 
-    // Hide banner when footer comes into view
     ScrollTrigger.create({
       trigger: footer,
       start: 'top bottom',
@@ -572,7 +566,6 @@
       const player = new Vimeo.Player(vimeoElement.id);
       let videoAspectRatio;
 
-      // Update aspect ratio if requested
       if (vimeoElement.getAttribute('data-vimeo-update-size') === 'true') {
         player.getVideoWidth().then(function (width) {
           player.getVideoHeight().then(function (height) {
@@ -583,7 +576,6 @@
         });
       }
 
-      // Adjust iframe sizing to cover container
       function adjustVideoSizing() {
         const containerAspectRatio =
           (vimeoElement.offsetHeight / vimeoElement.offsetWidth) * 100;
@@ -607,12 +599,10 @@
 
       window.addEventListener('resize', adjustVideoSizing);
 
-      // Mark as loaded on first play
       player.on('play', function () {
         vimeoElement.setAttribute('data-vimeo-loaded', 'true');
       });
 
-      // Play / pause helpers
       function vimeoPlayerPlay() {
         vimeoElement.setAttribute('data-vimeo-activated', 'true');
         vimeoElement.setAttribute('data-vimeo-playing', 'true');
@@ -623,7 +613,6 @@
         player.pause();
       }
 
-      // Scroll-based autoplay
       if (vimeoElement.getAttribute('data-vimeo-autoplay') === 'false') {
         player.pause();
       } else {
@@ -642,11 +631,9 @@
         vimeoElement.setAttribute('data-vimeo-playing', 'false');
       });
 
-      // Play button
       const playBtn = vimeoElement.querySelector('[data-vimeo-control="play"]');
       if (playBtn) playBtn.addEventListener('click', vimeoPlayerPlay);
 
-      // Pause button
       const pauseBtn = vimeoElement.querySelector('[data-vimeo-control="pause"]');
       if (pauseBtn) {
         pauseBtn.addEventListener('click', function () {
@@ -674,7 +661,6 @@
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
 
-      // Require consent checkbox
       if (consentCheckbox && !consentCheckbox.checked) {
         consentCheckbox.closest('label')?.classList.add('is-error');
         return;
@@ -686,7 +672,6 @@
 
       const formData = new FormData();
 
-      // Map form fields to Ether API fields
       const fields = {
         parent_guardian_name: '[name="parent_guardian_name"]',
         email_id:             '[name="email_id"]',
@@ -699,7 +684,6 @@
         if (el) formData.append(key, el.value.trim());
       }
 
-      // Static fields
       formData.append('country_code', '91');
       formData.append('school_code', 'TSOR');
       formData.append('utm_source', 'website');
@@ -734,12 +718,62 @@
       }
     });
 
-    // Clear consent error styling on change
     if (consentCheckbox) {
       consentCheckbox.addEventListener('change', function () {
         if (this.checked) {
           this.closest('label')?.classList.remove('is-error');
         }
+      });
+    }
+  }
+
+  // ——— Init: RTE image rows ———
+  function initRTEImageRows() {
+    const RICH_TEXT_SELECTOR = '.w-richtext[rte-image-rows]';
+    const WRAPPER_MARKER = '[row]';
+    const NEW_WRAPPER_MARKER = '[new-row]';
+    const WRAPPER_CLASS = 'rte-image-row';
+
+    document.querySelectorAll(RICH_TEXT_SELECTOR).forEach((element) =>
+      processRichTextElement(element)
+    );
+
+    function processRichTextElement(element) {
+      const figureElements = element.querySelectorAll('figure');
+      let currentWrapper = null;
+      let previousMarker = false;
+
+      figureElements.forEach((figure) => {
+        const captionElements = figure.querySelectorAll('figcaption');
+        if (!captionElements.length) return;
+
+        captionElements.forEach((captionElement) => {
+          const captionText = captionElement.textContent.trim();
+          const isNewWrapper = captionText.includes(NEW_WRAPPER_MARKER);
+          const isWrapper = captionText.includes(WRAPPER_MARKER);
+
+          if ((isNewWrapper || !isWrapper) && currentWrapper)
+            currentWrapper = null;
+
+          if (!isWrapper && !isNewWrapper && !captionText.includes('['))
+            return;
+
+          if (isWrapper || isNewWrapper || previousMarker) {
+            if (!currentWrapper) {
+              currentWrapper = document.createElement('div');
+              currentWrapper.classList.add(WRAPPER_CLASS);
+              figure.replaceWith(currentWrapper);
+            }
+
+            currentWrapper.appendChild(figure);
+            captionElement.textContent = captionText
+              .replace(NEW_WRAPPER_MARKER, '')
+              .replace(WRAPPER_MARKER, '')
+              .trim();
+          }
+
+          previousMarker = isWrapper || isNewWrapper;
+        });
       });
     }
   }
@@ -755,5 +789,6 @@
     initPromoBanner();
     initVimeoBGVideo();
     initEtherForm();
+    initRTEImageRows();
   });
 })();
