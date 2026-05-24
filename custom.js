@@ -20,38 +20,39 @@
   };
 
   // ——— Init: Navbar show/hide on scroll ———
-function initNavbar() {
-  const nav = document.querySelector('.navbar');
-  if (!nav) return;
+  function initNavbar() {
+    const nav = document.querySelector('.navbar');
+    if (!nav) return;
 
-  const scrolledBg = nav.getAttribute('data-nav-scrolled-bg') || '#000000';
+    // Read scrolled background color from data attribute, default to black
+    const scrolledBg = nav.getAttribute('data-nav-scrolled-bg') || '#000000';
 
-  const showAnim = gsap
-    .from(nav, {
-      yPercent: -100,
-      paused: true,
-      duration: 0.3,
-      ease: 'power2.out',
-    })
-    .progress(1);
+    const showAnim = gsap
+      .from(nav, {
+        yPercent: -100,
+        paused: true,
+        duration: 0.3,
+        ease: 'power2.out',
+      })
+      .progress(1);
 
-  ScrollTrigger.create({
-    start: 'top top',
-    end: 'max',
-    onUpdate: (self) => {
-      if (self.direction === -1) {
-        showAnim.play();
-        gsap.to(nav, { backgroundColor: scrolledBg, duration: 0.3 });
-      } else {
-        showAnim.reverse();
-      }
+    ScrollTrigger.create({
+      start: 'top top',
+      end: 'max',
+      onUpdate: (self) => {
+        if (self.direction === -1) {
+          showAnim.play();
+          gsap.to(nav, { backgroundColor: scrolledBg, duration: 0.3 });
+        } else {
+          showAnim.reverse();
+        }
 
-      if (self.scroll() <= 50) {
-        gsap.to(nav, { backgroundColor: 'transparent', duration: 0.3 });
-      }
-    },
-  });
-}
+        if (self.scroll() <= 50) {
+          gsap.to(nav, { backgroundColor: 'transparent', duration: 0.3 });
+        }
+      },
+    });
+  }
 
   // ——— Init: Masked text scroll reveal ———
   function initMaskTextScrollReveal() {
@@ -142,7 +143,6 @@ function initNavbar() {
           (el) => el.nodeType === 1
         );
 
-        // If no children, animate the group element itself
         if (!directChildren.length) {
           gsap.set(groupEl, { y: groupDistance, autoAlpha: 0 });
           ScrollTrigger.create({
@@ -161,7 +161,6 @@ function initNavbar() {
           return;
         }
 
-        // Build animation slots
         const slots = [];
         directChildren.forEach((child) => {
           const nestedGroup =
@@ -194,12 +193,9 @@ function initNavbar() {
           }
         });
 
-        // Set initial hidden state
         slots.forEach((slot) => {
           if (slot.type === 'item') {
-            const isNestedSelf = slot.el.matches(
-              '[data-reveal-group-nested]'
-            );
+            const isNestedSelf = slot.el.matches('[data-reveal-group-nested]');
             const d = isNestedSelf
               ? groupDistance
               : slot.el.getAttribute('data-distance') || groupDistance;
@@ -216,14 +212,12 @@ function initNavbar() {
           }
         });
 
-        // Re-assert parent distance for nested parents
         slots.forEach((slot) => {
           if (slot.type === 'nested' && slot.includeParent) {
             gsap.set(slot.parentEl, { y: groupDistance });
           }
         });
 
-        // Reveal sequence
         ScrollTrigger.create({
           trigger: groupEl,
           start: triggerStart,
