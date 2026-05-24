@@ -660,6 +660,90 @@
     });
   }
 
+  // ——— Init: Ether CRM form integration ———
+  function initEtherForm() {
+    const form = document.querySelector('[data-ether-form]');
+    if (!form) return;
+
+    const consentCheckbox = form.querySelector('[data-ether-consent]');
+    const submitBtn = form.querySelector('[type="submit"]');
+    const formWrap = form.closest('.w-form');
+    const successDiv = formWrap?.querySelector('.w-form-done');
+    const errorDiv = formWrap?.querySelector('.w-form-fail');
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      // Require consent checkbox
+      if (consentCheckbox && !consentCheckbox.checked) {
+        consentCheckbox.closest('label')?.classList.add('is-error');
+        return;
+      }
+
+      const originalText = submitBtn?.textContent || '';
+      if (submitBtn) submitBtn.textContent = 'Submitting...';
+      if (errorDiv) errorDiv.style.display = 'none';
+
+      const formData = new FormData();
+
+      // Map form fields to Ether API fields
+      const fields = {
+        parent_guardian_name: '[name="parent_guardian_name"]',
+        email_id:             '[name="email_id"]',
+        mobile_number:        '[name="mobile_number"]',
+        admission_for_grade:  '[name="admission_for_grade"]',
+      };
+
+      for (const [key, selector] of Object.entries(fields)) {
+        const el = form.querySelector(selector);
+        if (el) formData.append(key, el.value.trim());
+      }
+
+      // Static fields
+      formData.append('country_code', '91');
+      formData.append('school_code', 'TSOR');
+      formData.append('utm_source', 'website');
+      formData.append('lead_source', 'website');
+      formData.append('heard_about_us', 'website');
+
+      try {
+        const response = await fetch(
+          'https://api.enrol.etherapp.in/enrol/api/lead/form/submit',
+          {
+            method: 'POST',
+            headers: {
+              'x-code': '456a540bf7195d860a195cd93e844a76643028eab72e70e8c88b32ec5124a07e',
+              'source': 'tsor_s',
+            },
+            body: formData,
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok && result.status === 'success') {
+          if (successDiv) successDiv.style.display = 'block';
+          if (form) form.style.display = 'none';
+        } else {
+          throw new Error(result.message || 'Submission failed');
+        }
+      } catch (err) {
+        if (errorDiv) errorDiv.style.display = 'block';
+        if (submitBtn) submitBtn.textContent = originalText;
+        console.error('Ether form error:', err);
+      }
+    });
+
+    // Clear consent error styling on change
+    if (consentCheckbox) {
+      consentCheckbox.addEventListener('change', function () {
+        if (this.checked) {
+          this.closest('label')?.classList.remove('is-error');
+        }
+      });
+    }
+  }
+
   // ——— Single DOMContentLoaded ———
   document.addEventListener('DOMContentLoaded', () => {
     initNavbar();
@@ -670,5 +754,6 @@
     initStackingStickyCardsBounce();
     initPromoBanner();
     initVimeoBGVideo();
+    initEtherForm();
   });
 })();
