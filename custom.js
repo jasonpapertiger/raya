@@ -20,36 +20,38 @@
   };
 
   // ——— Init: Navbar show/hide on scroll ———
-  function initNavbar() {
-    const nav = document.querySelector('.navbar');
-    if (!nav) return;
+function initNavbar() {
+  const nav = document.querySelector('.navbar');
+  if (!nav) return;
 
-    const showAnim = gsap
-      .from(nav, {
-        yPercent: -100,
-        paused: true,
-        duration: 0.3,
-        ease: 'power2.out',
-      })
-      .progress(1);
+  const scrolledBg = nav.getAttribute('data-nav-scrolled-bg') || '#000000';
 
-    ScrollTrigger.create({
-      start: 'top top',
-      end: 'max',
-      onUpdate: (self) => {
-        if (self.direction === -1) {
-          showAnim.play();
-          gsap.to(nav, { backgroundColor: '#000000', duration: 0.3 });
-        } else {
-          showAnim.reverse();
-        }
+  const showAnim = gsap
+    .from(nav, {
+      yPercent: -100,
+      paused: true,
+      duration: 0.3,
+      ease: 'power2.out',
+    })
+    .progress(1);
 
-        if (self.scroll() <= 50) {
-          gsap.to(nav, { backgroundColor: 'transparent', duration: 0.3 });
-        }
-      },
-    });
-  }
+  ScrollTrigger.create({
+    start: 'top top',
+    end: 'max',
+    onUpdate: (self) => {
+      if (self.direction === -1) {
+        showAnim.play();
+        gsap.to(nav, { backgroundColor: scrolledBg, duration: 0.3 });
+      } else {
+        showAnim.reverse();
+      }
+
+      if (self.scroll() <= 50) {
+        gsap.to(nav, { backgroundColor: 'transparent', duration: 0.3 });
+      }
+    },
+  });
+}
 
   // ——— Init: Masked text scroll reveal ———
   function initMaskTextScrollReveal() {
