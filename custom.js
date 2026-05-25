@@ -670,10 +670,12 @@
       const formData = new FormData();
 
       const fields = {
+        student_name:         '[name="student_name"]',
         parent_guardian_name: '[name="parent_guardian_name"]',
         email_id:             '[name="email_id"]',
         mobile_number:        '[name="mobile_number"]',
         admission_for_grade:  '[name="admission_for_grade"]',
+        heard_about_us:       '[name="heard_about_us"]',
       };
 
       for (const [key, selector] of Object.entries(fields)) {
@@ -681,11 +683,15 @@
         if (el) formData.append(key, el.value.trim());
       }
 
-      formData.append('country_code', '91');
+      // Country code from select (strip leading + for Ether API)
+      const countryCodeEl = form.querySelector('[name="country_code"]');
+      if (countryCodeEl) {
+        formData.append('country_code', countryCodeEl.value.replace('+', ''));
+      }
+
       formData.append('school_code', 'TSOR');
       formData.append('utm_source', 'website');
       formData.append('lead_source', 'website');
-      formData.append('heard_about_us', 'website');
 
       try {
         const response = await fetch(
