@@ -500,11 +500,13 @@
 
   // ——— Init: Promo banner show/hide on scroll ———
   function initPromoBanner() {
-    const banner = document.querySelector('.promo-banner');
-    const footer = document.querySelector('footer');
-    if (!banner || !footer) return;
+    // Use rAF to ensure component DOM is fully rendered before GSAP sets initial state
+    requestAnimationFrame(() => {
+      const banner = document.querySelector('.promo-banner');
+      const footer = document.querySelector('footer');
+      if (!banner || !footer) return;
 
-    gsap.set(banner, { y: '100%', autoAlpha: 0 });
+      gsap.set(banner, { y: '100%', autoAlpha: 0 });
 
     ScrollTrigger.create({
       start: 1600,
@@ -543,6 +545,7 @@
           ease: 'power2.out',
         }),
     });
+    }); // end requestAnimationFrame
   }
 
   // ——— Init: Vimeo background video ———
