@@ -500,52 +500,62 @@
 
   // ——— Init: Promo banner show/hide on scroll ———
   function initPromoBanner() {
-    // Double rAF ensures component DOM is fully rendered before GSAP runs
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    setTimeout(() => {
       const banner = document.querySelector('.promo-banner');
       const footer = document.querySelector('footer');
       if (!banner || !footer) return;
 
-      gsap.set(banner, { y: '100%', autoAlpha: 0 });
+      // Force hide via inline styles before GSAP takes over
+      banner.style.transform = 'translateY(100%)';
+      banner.style.opacity = '0';
+      banner.style.visibility = 'hidden';
 
-    ScrollTrigger.create({
-      start: 1600,
-      end: 'max',
-      onEnter: () =>
-        gsap.to(banner, {
-          y: '0%',
-          autoAlpha: 1,
-          duration: 0.4,
-          ease: 'power2.out',
-        }),
-      onLeaveBack: () =>
-        gsap.to(banner, {
-          y: '100%',
-          autoAlpha: 0,
-          duration: 0.3,
-          ease: 'power2.in',
-        }),
-    });
+      ScrollTrigger.create({
+        start: 1600,
+        end: 'max',
+        onEnter: () => {
+          banner.style.visibility = 'visible';
+          gsap.to(banner, {
+            y: '0%',
+            opacity: 1,
+            duration: 0.4,
+            ease: 'power2.out',
+          });
+        },
+        onLeaveBack: () =>
+          gsap.to(banner, {
+            y: '100%',
+            opacity: 0,
+            duration: 0.3,
+            ease: 'power2.in',
+            onComplete: () => { banner.style.visibility = 'hidden'; },
+          }),
+      });
 
-    ScrollTrigger.create({
-      trigger: footer,
-      start: 'top bottom',
-      onEnter: () =>
-        gsap.to(banner, {
-          y: '100%',
-          autoAlpha: 0,
-          duration: 0.3,
-          ease: 'power2.in',
-        }),
-      onLeaveBack: () =>
-        gsap.to(banner, {
-          y: '0%',
-          autoAlpha: 1,
-          duration: 0.4,
-          ease: 'power2.out',
-        }),
-    });
-    })); // end double requestAnimationFrame
+      ScrollTrigger.create({
+        trigger: footer,
+        start: 'top bottom',
+        onEnter: () =>
+          gsap.to(banner, {
+            y: '100%',
+            opacity: 0,
+            duration: 0.3,
+            ease: 'power2.in',
+            onComplete: () => { banner.style.visibility = 'hidden'; },
+          }),
+        onLeaveBack: () => {
+          banner.style.visibility = 'visible';
+          gsap.to(banner, {
+            y: '0%',
+            opacity: 1,
+            duration: 0.4,
+            ease: 'power2.out',
+          });
+        },
+      });
+
+      ScrollTrigger.refresh();
+    }, 300);
   }
 
   // ——— Init: Vimeo background video ———
