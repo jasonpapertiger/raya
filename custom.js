@@ -500,8 +500,8 @@
 
   // ——— Init: Promo banner show/hide on scroll ———
   function initPromoBanner() {
-    // Use rAF to ensure component DOM is fully rendered before GSAP sets initial state
-    requestAnimationFrame(() => {
+    // Double rAF ensures component DOM is fully rendered before GSAP runs
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       const banner = document.querySelector('.promo-banner');
       const footer = document.querySelector('footer');
       if (!banner || !footer) return;
@@ -545,7 +545,7 @@
           ease: 'power2.out',
         }),
     });
-    }); // end requestAnimationFrame
+    })); // end double requestAnimationFrame
   }
 
   // ——— Init: Vimeo background video ———
