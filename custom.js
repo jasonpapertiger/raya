@@ -505,30 +505,27 @@
       const footer = document.querySelector('footer');
       if (!banner || !footer) return;
 
-      // Force hide via inline styles before GSAP takes over
-      banner.style.transform = 'translateY(100%)';
-      banner.style.opacity = '0';
-      banner.style.visibility = 'hidden';
+      // Force initial hidden state via inline styles
+      gsap.set(banner, { y: '100%', opacity: 0, clearProps: 'visibility' });
 
       ScrollTrigger.create({
         start: 1600,
         end: 'max',
-        onEnter: () => {
-          banner.style.visibility = 'visible';
+        onEnter: () =>
           gsap.to(banner, {
             y: '0%',
             opacity: 1,
             duration: 0.4,
             ease: 'power2.out',
-          });
-        },
+            overwrite: true,
+          }),
         onLeaveBack: () =>
           gsap.to(banner, {
             y: '100%',
             opacity: 0,
             duration: 0.3,
             ease: 'power2.in',
-            onComplete: () => { banner.style.visibility = 'hidden'; },
+            overwrite: true,
           }),
       });
 
@@ -541,17 +538,16 @@
             opacity: 0,
             duration: 0.3,
             ease: 'power2.in',
-            onComplete: () => { banner.style.visibility = 'hidden'; },
+            overwrite: true,
           }),
-        onLeaveBack: () => {
-          banner.style.visibility = 'visible';
+        onLeaveBack: () =>
           gsap.to(banner, {
             y: '0%',
             opacity: 1,
             duration: 0.4,
             ease: 'power2.out',
-          });
-        },
+            overwrite: true,
+          }),
       });
 
       ScrollTrigger.refresh();
