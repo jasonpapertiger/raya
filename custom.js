@@ -286,6 +286,9 @@
       });
     });
 
+    // All groups processed — safe to remove loading class now
+    document.documentElement.classList.remove('js-loading');
+
     return () => ctx.revert();
   }
 
