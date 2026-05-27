@@ -120,6 +120,9 @@
 
   // ——— Init: Content reveal on scroll ———
   function initContentRevealScroll() {
+    // Remove loading class so GSAP takes over from CSS hide
+    document.documentElement.classList.remove('js-loading');
+
     const prefersReduced = window.matchMedia(
       '(prefers-reduced-motion: reduce)'
     ).matches;
