@@ -404,12 +404,24 @@ body.raya-modal-open{overflow:hidden}
 
   document.getElementById('raya-mc').onclick=closeModal;
   modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
-  // Prevent background scroll on iOS when modal is open
+  // Prevent background page scroll when touching the modal backdrop
+  // but allow the modal itself to scroll normally
+  modal.addEventListener('touchstart',e=>{
+    // Track touch start Y for modal scroll clamping
+    modal._touchStartY=e.touches[0].clientY;
+  },{passive:true});
   modal.addEventListener('touchmove',e=>{
-    // Allow scroll if modal itself has overflow content
-    if(modal.scrollHeight>modal.clientHeight){
-      e.stopPropagation();
-    } else {
+    // Only block if the touch target is the modal backdrop itself (not inner content)
+    if(e.target===modal){
+      e.preventDefault();
+      return;
+    }
+    // For content inside modal: allow scroll, but clamp at top/bottom to prevent
+    // the scroll bleeding through to the page behind
+    const scrollTop=modal.scrollTop;
+    const maxScroll=modal.scrollHeight-modal.clientHeight;
+    const dy=(modal._touchStartY||0)-e.touches[0].clientY;
+    if((scrollTop<=0&&dy<0)||(scrollTop>=maxScroll&&dy>0)){
       e.preventDefault();
     }
   },{passive:false});
