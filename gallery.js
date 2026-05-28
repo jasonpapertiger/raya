@@ -65,7 +65,7 @@ body.raya-modal-open{overflow:hidden}
   const modalEl=document.createElement('div');
   modalEl.innerHTML=`<div id="raya-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(29,29,29,0.6);z-index:10000;backdrop-filter:blur(4px);overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
     <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:0 auto;position:relative;opacity:0;transform:translateY(16px)">
-      <button id="raya-mc" style="position:absolute;top:0;right:0;width:44px;height:44px;background:rgba(29,29,29,0.05);border:none;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center">
+      <button id="raya-mc" style="position:fixed;top:16px;right:16px;width:44px;height:44px;background:rgba(29,29,29,0.15);border:none;cursor:pointer;z-index:10001;display:flex;align-items:center;justify-content:center;border-radius:2px">
         <svg id="raya-close-svg" width="20" height="20" viewBox="0 0 33 33" fill="none" style="transform:rotate(45deg)">
           <line x1="16.9317" y1="0" x2="16.9317" y2="33" stroke="white" stroke-width="1.6"/>
           <line x1="33" y1="16.4489" x2="0" y2="16.4489" stroke="white" stroke-width="1.6"/>
@@ -334,6 +334,10 @@ body.raya-modal-open{overflow:hidden}
   function openModal(item){
     const tribe=TRIBES[item.tribe]||TRIBES.Moana;
     const isMobile=window.innerWidth<600;
+    // Reset layout state from previous open
+    const layout=document.getElementById('raya-modal-layout');
+    layout.style.flexDirection='';
+    document.getElementById('raya-modal-img').style.width='';
 
     // Fix 4: close button always white
     document.getElementById('raya-close-svg').querySelectorAll('line')
@@ -359,7 +363,6 @@ body.raya-modal-open{overflow:hidden}
       mImg.style.cssText='width:100%;height:auto;display:block';
     }
 
-    const layout=document.getElementById('raya-modal-layout');
     function applyLayout(){
       if(isMobile){
         layout.style.flexDirection='column';imgWrap.style.width='100%';
@@ -401,4 +404,13 @@ body.raya-modal-open{overflow:hidden}
 
   document.getElementById('raya-mc').onclick=closeModal;
   modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+  // Prevent background scroll on iOS when modal is open
+  modal.addEventListener('touchmove',e=>{
+    // Allow scroll if modal itself has overflow content
+    if(modal.scrollHeight>modal.clientHeight){
+      e.stopPropagation();
+    } else {
+      e.preventDefault();
+    }
+  },{passive:false});
 })();
