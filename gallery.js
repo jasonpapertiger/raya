@@ -60,7 +60,7 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
     <a id="raya-launch" href="#" class="button is-red w-button">Launch</a>
   </div>
   <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box"></div>
-  <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:9999;backdrop-filter:blur(4px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
+  <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:10000;backdrop-filter:blur(4px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
     <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:0 auto;position:relative;opacity:0;transform:translateY(16px)">
       <!-- Fix 1: close button always inside modal-inner, top-right corner -->
       <button id="raya-mc" style="position:absolute;top:0;right:0;width:44px;height:44px;background:rgba(29,29,29,0.05);border:none;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center">
