@@ -63,7 +63,7 @@ body.raya-modal-open{overflow:hidden}
 
   // Append modal to body so it escapes gallery stacking context and overflow:hidden
   const modalEl=document.createElement('div');
-  modalEl.innerHTML=`<div id="raya-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(29,29,29,0.6);z-index:10000;backdrop-filter:blur(4px);overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
+  modalEl.innerHTML=`<div id="raya-modal" data-lenis-prevent style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(29,29,29,0.6);z-index:10000;backdrop-filter:blur(4px);overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
     <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:0 auto;position:relative;opacity:0;transform:translateY(16px)">
       <button id="raya-mc" style="position:fixed;top:16px;right:16px;width:44px;height:44px;background:rgba(29,29,29,0.15);border:none;cursor:pointer;z-index:10001;display:flex;align-items:center;justify-content:center;border-radius:2px">
         <svg id="raya-close-svg" width="20" height="20" viewBox="0 0 33 33" fill="none" style="transform:rotate(45deg)">
@@ -385,6 +385,8 @@ body.raya-modal-open{overflow:hidden}
     }
 
     document.body.classList.add('raya-modal-open');
+    // Stop Lenis smooth scroll so it doesn't intercept modal scroll events
+    if(window.lenis) window.lenis.stop();
     modal.style.display='block';
     modal.scrollTop=0;
     modalInner.style.opacity='0';modalInner.style.transform='translateY(16px)';
@@ -397,6 +399,8 @@ body.raya-modal-open{overflow:hidden}
   function closeModal(){
     clearHover();
     document.body.classList.remove('raya-modal-open');
+    // Restart Lenis smooth scroll
+    if(window.lenis) window.lenis.start();
     modalInner.style.transition='opacity 0.15s ease,transform 0.15s ease';
     modalInner.style.opacity='0';modalInner.style.transform='translateY(10px)';
     setTimeout(()=>{modal.style.display='none';modalInner.style.transition='';},160);
