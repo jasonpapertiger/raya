@@ -59,10 +59,12 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
     <div class="spacer-medium"></div>
     <a id="raya-launch" href="#" class="button is-red w-button">Launch</a>
   </div>
-  <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box"></div>
-  <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:10000;backdrop-filter:blur(4px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
+  <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box"></div>`;
+
+  // Append modal to body so it escapes gallery stacking context and overflow:hidden
+  const modalEl=document.createElement('div');
+  modalEl.innerHTML=`<div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:10000;backdrop-filter:blur(4px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
     <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:0 auto;position:relative;opacity:0;transform:translateY(16px)">
-      <!-- Fix 1: close button always inside modal-inner, top-right corner -->
       <button id="raya-mc" style="position:absolute;top:0;right:0;width:44px;height:44px;background:rgba(29,29,29,0.05);border:none;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center">
         <svg id="raya-close-svg" width="20" height="20" viewBox="0 0 33 33" fill="none" style="transform:rotate(45deg)">
           <line x1="16.9317" y1="0" x2="16.9317" y2="33" stroke="white" stroke-width="1.6"/>
@@ -78,6 +80,7 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
       </div>
     </div>
   </div>`;
+  document.body.appendChild(modalEl.firstElementChild);
 
   const PLUS=`<svg width="16" height="16" viewBox="0 0 33 33" fill="none"><line x1="16.9317" y1="0" x2="16.9317" y2="33" stroke="white" stroke-width="1.6"/><line x1="33" y1="16.4489" x2="0" y2="16.4489" stroke="white" stroke-width="1.6"/></svg>`;
 
@@ -246,21 +249,29 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
 
     function tryClone(){
       if(!allLoaded()){setTimeout(tryClone,100);return;}
-      // One extra frame to let browser finish layout
       requestAnimationFrame(()=>{
         const h=innerA.offsetHeight;
         if(h<100){setTimeout(tryClone,200);return;}
         loopH[c]=h;
-        const innerB=innerA.cloneNode(true);
-        innerB.className='col-inner';
+
+        // Build innerB fresh (not cloneNode) so event listeners are properly attached
+        const innerB=buildInner(c);
         innerB.style.top=h+'px';
-        // Mark all cloned images as loaded since they copy src from already-loaded originals
-        innerB.querySelectorAll('img').forEach(img=>{
-          if(img.complete&&img.naturalHeight>0) img.classList.add('loaded');
-          else loadImg(img);
-        });
+        // Images load from cache instantly
+        innerB.querySelectorAll('img').forEach(img=>loadImg(img));
         colRef.appendChild(innerB);
         colInnerB[c]=innerB;
+
+        // Keep loopH in sync as images load and heights settle
+        if(window.ResizeObserver){
+          new ResizeObserver(()=>{
+            const newH=innerA.offsetHeight;
+            if(newH>100&&newH!==loopH[c]){
+              loopH[c]=newH;
+              innerB.style.top=(newH-pos[c])+'px';
+            }
+          }).observe(innerA);
+        }
       });
     }
 
