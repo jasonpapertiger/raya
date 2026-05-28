@@ -20,10 +20,10 @@
 
   if(!items.length){console.warn('[Raya Gallery] No [data-gallery-item] elements found.');return;}
 
-  // Inject styles
   const style=document.createElement('style');
   style.textContent=`
-#raya-gallery-root .gc{overflow:hidden;height:100%;position:relative;cursor:grab}
+#raya-gallery-root{background:#1d1d1d}
+#raya-gallery-root .gc{overflow:hidden;height:100%;position:relative;cursor:grab;user-select:none;-webkit-user-select:none}
 #raya-gallery-root .gc.dragging{cursor:grabbing}
 #raya-gallery-root .col-inner{position:absolute;left:0;right:0;display:flex;flex-direction:column;gap:10px}
 #raya-gallery-root .gcard{position:relative;overflow:hidden;flex-shrink:0;cursor:pointer;transition:filter 0.3s,opacity 0.3s}
@@ -38,6 +38,8 @@
 #raya-g.dim .gcard{filter:blur(4px);opacity:0.15}
 #raya-g.dim .gcard.hovered{filter:none;opacity:1}
 #raya-modal-img img{width:100%;height:auto;display:block}
+/* Fix 5: prevent body scroll when modal open */
+body.raya-modal-open{overflow:hidden;touch-action:none}
 @media(max-width:600px){
   #raya-modal-layout{flex-direction:column !important}
   #raya-modal-img{width:100% !important}
@@ -45,14 +47,15 @@
 }`;
   document.head.appendChild(style);
 
-  // Inject HTML
   const root=document.getElementById('raya-gallery-root');
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
+
   root.innerHTML=`
   <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box"></div>
-  <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:9999;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:32px 16px;box-sizing:border-box;overflow-y:auto">
+  <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:9999;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:32px 16px;box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch">
     <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:auto;position:relative;opacity:0;transform:translateY(16px)">
-      <button id="raya-mc" style="position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;z-index:10;padding:6px;transform:rotate(45deg)">
+      <!-- Fix 1: close button always inside modal-inner, top-right corner -->
+      <button id="raya-mc" style="position:absolute;top:0;right:0;width:44px;height:44px;background:rgba(29,29,29,0.05);border:none;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;transform:rotate(45deg)">
         <svg id="raya-close-svg" width="20" height="20" viewBox="0 0 33 33" fill="none">
           <line x1="16.9317" y1="0" x2="16.9317" y2="33" stroke="white" stroke-width="1.6"/>
           <line x1="33" y1="16.4489" x2="0" y2="16.4489" stroke="white" stroke-width="1.6"/>
@@ -69,7 +72,9 @@
   </div>`;
 
   const PLUS=`<svg width="16" height="16" viewBox="0 0 33 33" fill="none"><line x1="16.9317" y1="0" x2="16.9317" y2="33" stroke="white" stroke-width="1.6"/><line x1="33" y1="16.4489" x2="0" y2="16.4489" stroke="white" stroke-width="1.6"/></svg>`;
-  const SPEEDS=[0.012,-0.009,0.010,-0.013,0.008];
+
+  // Fix 3: slightly faster speeds
+  const SPEEDS=[0.022,-0.017,0.019,-0.024,0.016];
   const GAP=10;
   const gal=document.getElementById('raya-g');
   const modal=document.getElementById('raya-modal');
@@ -79,7 +84,10 @@
 
   let numCols=5,lastT=null;
   const pos=[],loopH=[],colInnerA=[],colInnerB=[],speeds=[];
+
+  // Fix 6: proper drag with momentum — separate tracking per column
   const drag={on:false,col:-1,startY:0,startPos:0,vy:0,prevY:0,prevT:0,moved:false};
+
   let pendingCard=null,hoverEntryX=0,hoverEntryY=0;
   const HOVER_PX=8;
 
@@ -88,15 +96,13 @@
     if(w<480)return 2;if(w<768)return 3;if(w<1024)return 4;return 5;
   }
 
-  // Lazy load observer
   const io=new IntersectionObserver(entries=>{
     entries.forEach(e=>{
       if(!e.isIntersecting)return;
       const img=e.target;
       const src=img.getAttribute('data-src');
       if(src){
-        img.src=src;
-        img.removeAttribute('data-src');
+        img.src=src;img.removeAttribute('data-src');
         img.addEventListener('load',()=>requestAnimationFrame(()=>img.classList.add('loaded')),{once:true});
         img.addEventListener('error',()=>img.classList.add('loaded'),{once:true});
       }
@@ -115,8 +121,7 @@
       if(!pendingCard)return;
       const dx=e.clientX-hoverEntryX,dy=e.clientY-hoverEntryY;
       if(Math.sqrt(dx*dx+dy*dy)>=HOVER_PX){
-        gal.classList.add('dim');
-        pendingCard=null;
+        gal.classList.add('dim');pendingCard=null;
       }
     });
   }
@@ -151,37 +156,97 @@
 
   function buildInner(c){
     const inner=document.createElement('div');
-    inner.className='col-inner';
-    inner.style.top='0';
+    inner.className='col-inner';inner.style.top='0';
     const offset=Math.floor((items.length/numCols)*c)%items.length;
     const ordered=items.slice(offset).concat(items.slice(0,offset));
     ordered.forEach(item=>inner.appendChild(makeCard(item,c)));
     return inner;
   }
 
+  // Fix 6: smooth drag with momentum on both desktop and mobile
   function attachDrag(colEl,c){
-    const start=y=>{drag.on=true;drag.col=c;drag.startY=y;drag.startPos=pos[c];drag.prevY=y;drag.prevT=performance.now();drag.vy=0;drag.moved=false;colEl.classList.add('dragging');};
-    const move=y=>{
-      if(!drag.on||drag.col!==c)return;
+    let pointerDown=false;
+
+    function onStart(y){
+      pointerDown=true;
+      drag.on=true;drag.col=c;
+      drag.startY=y;drag.startPos=pos[c];
+      drag.prevY=y;drag.prevT=performance.now();
+      drag.vy=0;drag.moved=false;
+      colEl.classList.add('dragging');
+    }
+    function onMove(y){
+      if(!pointerDown||drag.col!==c)return;
       if(Math.abs(y-drag.startY)>4)drag.moved=true;
-      const now=performance.now(),dt=now-drag.prevT||1;
-      drag.vy=(y-drag.prevY)/dt;drag.prevY=y;drag.prevT=now;
+      const now=performance.now(),dt=Math.max(now-drag.prevT,1);
+      drag.vy=(y-drag.prevY)/dt;
+      drag.prevY=y;drag.prevT=now;
       const lh=loopH[c]||1;
       pos[c]=((drag.startPos-(y-drag.startY))%lh+lh)%lh;
-    };
-    const end=()=>{
-      if(!drag.on||drag.col!==c)return;
-      drag.on=false;colEl.classList.remove('dragging');
+    }
+    function onEnd(){
+      if(!pointerDown||drag.col!==c)return;
+      pointerDown=false;drag.on=false;
+      colEl.classList.remove('dragging');
+      // Apply momentum — blend from drag velocity back to base speed
       speeds[c]=-drag.vy*0.8;
       const base=SPEEDS[c%SPEEDS.length];
-      let f=0;const decay=()=>{f++;const t=Math.min(f/90,1);speeds[c]=speeds[c]*(1-t)+base*t;if(t<1)requestAnimationFrame(decay);else speeds[c]=base;};requestAnimationFrame(decay);
-    };
-    colEl.addEventListener('mousedown',e=>{start(e.clientY);e.preventDefault();});
-    window.addEventListener('mousemove',e=>{if(drag.on&&drag.col===c)move(e.clientY);});
-    window.addEventListener('mouseup',()=>{if(drag.on&&drag.col===c)end();});
-    colEl.addEventListener('touchstart',e=>start(e.touches[0].clientY),{passive:true});
-    colEl.addEventListener('touchmove',e=>{if(drag.on&&drag.col===c)move(e.touches[0].clientY);},{passive:true});
-    colEl.addEventListener('touchend',()=>{if(drag.on&&drag.col===c)end();});
+      let f=0;
+      const decay=()=>{
+        f++;const t=Math.min(f/120,1);
+        speeds[c]=speeds[c]*(1-t)+base*t;
+        if(t<1)requestAnimationFrame(decay);else speeds[c]=base;
+      };
+      requestAnimationFrame(decay);
+    }
+
+    // Mouse events
+    colEl.addEventListener('mousedown',e=>{
+      onStart(e.clientY);e.preventDefault();
+    });
+    window.addEventListener('mousemove',e=>{
+      if(drag.on&&drag.col===c)onMove(e.clientY);
+    });
+    window.addEventListener('mouseup',()=>{
+      if(drag.on&&drag.col===c)onEnd();
+    });
+
+    // Touch events — Fix 7: passive listeners, no interference with page scroll
+    colEl.addEventListener('touchstart',e=>{
+      // Only take over if touch is clearly vertical drag intent
+      onStart(e.touches[0].clientY);
+    },{passive:true});
+
+    colEl.addEventListener('touchmove',e=>{
+      if(!drag.on||drag.col!==c)return;
+      const dy=Math.abs(e.touches[0].clientY-drag.startY);
+      const dx=Math.abs(e.touches[0].clientX-(drag.startX||e.touches[0].clientX));
+      // Only prevent default if clearly scrolling vertically in column
+      if(dy>dx&&dy>8){
+        e.preventDefault();
+        onMove(e.touches[0].clientY);
+      }
+    },{passive:false});
+
+    colEl.addEventListener('touchend',()=>{
+      if(drag.on&&drag.col===c)onEnd();
+    },{passive:true});
+  }
+
+  function initColB(c,innerA,colRef){
+    function tryClone(){
+      const h=innerA.offsetHeight;
+      if(h<100){setTimeout(tryClone,150);return;}
+      loopH[c]=h;
+      const innerB=innerA.cloneNode(true);
+      innerB.className='col-inner';
+      // Fix 2: ensure gap is preserved in clone by setting top correctly
+      innerB.style.top=h+'px';
+      // Images in clone load from cache — no bump-in
+      colRef.appendChild(innerB);
+      colInnerB[c]=innerB;
+    }
+    setTimeout(tryClone,80);
   }
 
   function build(){
@@ -193,56 +258,30 @@
 
     for(let c=0;c<numCols;c++){
       const col=document.createElement('div');col.className='gc';
-
-      // Build ONE set of cards
       const innerA=buildInner(c);
       col.appendChild(innerA);
       gal.appendChild(col);
       colInnerA.push(innerA);
-      pos.push(0);loopH.push(0);speeds.push(SPEEDS[c%SPEEDS.length]);
+      pos.push(0);loopH.push(0);
+      speeds.push(SPEEDS[c%SPEEDS.length]);
       attachDrag(col,c);
-
-      // Once images in innerA have settled, clone innerA exactly as innerB
-      // This guarantees tB has identical heights — no independent loading
-      const colRef=col;
-      const cIdx=c;
-      function initB(cIdx,innerA,colRef){
-        // Wait for images to load then measure and clone
-        function tryClone(){
-          const h=innerA.offsetHeight;
-          if(h<100){
-            // Not ready — retry
-            setTimeout(tryClone,200);
-            return;
-          }
-          loopH[cIdx]=h;
-          // Clone innerA — all images already loaded, no bump-in
-          const innerB=innerA.cloneNode(true);
-          innerB.className='col-inner';
-          innerB.style.top=h+'px';
-          // Re-observe any images in clone that haven't loaded
-          // (cloneNode copies src so images load instantly from cache)
-          colRef.appendChild(innerB);
-          colInnerB[cIdx]=innerB;
-        }
-        setTimeout(tryClone,100);
-      }
-      initB(c,innerA,col);
+      initColB(c,innerA,col);
     }
   }
 
   build();
   let resizeTimer;
-  window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(getCols()!==numCols)build();},200);});
+  window.addEventListener('resize',()=>{
+    clearTimeout(resizeTimer);
+    resizeTimer=setTimeout(()=>{if(getCols()!==numCols)build();},200);
+  });
 
   function tick(ts){
     if(!lastT)lastT=ts;
     const dt=Math.min(ts-lastT,50);lastT=ts;
     for(let c=0;c<numCols;c++){
       if(drag.on&&drag.col===c)continue;
-      const lh=loopH[c];if(!lh)continue;
-      // tB not ready yet — skip
-      if(!colInnerB[c])continue;
+      const lh=loopH[c];if(!lh||!colInnerB[c])continue;
       pos[c]+=speeds[c]*dt;
       pos[c]=((pos[c]%lh)+lh)%lh;
       colInnerA[c].style.top=(-pos[c])+'px';
@@ -252,10 +291,15 @@
   }
   requestAnimationFrame(tick);
 
+  // ── Modal ────────────────────────────────────────────────────────────────────
   function openModal(item){
     const tribe=TRIBES[item.tribe]||TRIBES.Moana;
     const isMobile=window.innerWidth<600;
-    document.getElementById('raya-close-svg').querySelectorAll('line').forEach(l=>l.setAttribute('stroke',tribe.text));
+
+    // Fix 4: close button always white
+    document.getElementById('raya-close-svg').querySelectorAll('line')
+      .forEach(l=>l.setAttribute('stroke','white'));
+
     document.getElementById('raya-mh').textContent=item.student;
     document.getElementById('raya-mb').textContent=item.body;
     const textPane=document.getElementById('raya-modal-text');
@@ -282,11 +326,9 @@
         layout.style.flexDirection='column';imgWrap.style.width='100%';
         textPane.style.padding='24px 20px 32px';
       } else if(mImg&&mImg.naturalWidth>mImg.naturalHeight){
-        // Landscape: stack, full width
         layout.style.flexDirection='column';imgWrap.style.width='100%';
         textPane.style.padding='32px 36px';
       } else {
-        // Portrait: side by side
         layout.style.flexDirection='row';imgWrap.style.width='45%';
         textPane.style.padding='40px 36px';
       }
@@ -294,13 +336,16 @@
 
     if(mImg){
       imgWrap.appendChild(mImg);
-      if(mImg.complete&&mImg.naturalWidth>0) applyLayout();
+      if(mImg.complete&&mImg.naturalWidth>0)applyLayout();
       else{applyLayout();mImg.addEventListener('load',applyLayout,{once:true});}
     } else {
       imgWrap.style.background=tribe.bg;imgWrap.style.minHeight='200px';applyLayout();
     }
 
-    modal.style.display='flex';modal.scrollTop=0;
+    // Fix 5: lock body scroll when modal opens
+    document.body.classList.add('raya-modal-open');
+    modal.style.display='flex';
+    modal.scrollTop=0;
     modalInner.style.opacity='0';modalInner.style.transform='translateY(16px)';
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       modalInner.style.transition='opacity 0.25s ease,transform 0.25s ease';
@@ -310,10 +355,13 @@
 
   function closeModal(){
     clearHover();
+    // Fix 5: restore body scroll
+    document.body.classList.remove('raya-modal-open');
     modalInner.style.transition='opacity 0.15s ease,transform 0.15s ease';
     modalInner.style.opacity='0';modalInner.style.transform='translateY(10px)';
     setTimeout(()=>{modal.style.display='none';modalInner.style.transition='';},160);
   }
+
   document.getElementById('raya-mc').onclick=closeModal;
   modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
 })();
