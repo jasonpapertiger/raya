@@ -51,12 +51,20 @@ body.raya-modal-open{overflow:hidden;touch-action:none}
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
 
   root.innerHTML=`
-  <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box"></div>
+  <!-- Intro overlay -->
+  <div id="raya-intro" style="position:absolute;inset:0;background:#1d1d1d;z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;box-sizing:border-box">
+    <h1 class="heading-style-h1 mega">Rayots in motion</h1>
+    <div class="spacer-small"></div>
+    <p class="text-size-medium">Every photo a moment. Every moment a Rayot.</p>
+    <div class="spacer-medium"></div>
+    <a id="raya-launch" href="#" class="button is-red w-button">Launch</a>
+  </div>
+  <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box;opacity:0;transition:opacity 0.6s ease"></div>
   <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:9999;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:32px 16px;box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch">
     <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:auto;position:relative;opacity:0;transform:translateY(16px)">
       <!-- Fix 1: close button always inside modal-inner, top-right corner -->
-      <button id="raya-mc" style="position:absolute;top:0;right:0;width:44px;height:44px;background:rgba(29,29,29,0.05);border:none;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;transform:rotate(45deg)">
-        <svg id="raya-close-svg" width="20" height="20" viewBox="0 0 33 33" fill="none">
+      <button id="raya-mc" style="position:absolute;top:0;right:0;width:44px;height:44px;background:rgba(29,29,29,0.05);border:none;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center">
+        <svg id="raya-close-svg" width="20" height="20" viewBox="0 0 33 33" fill="none" style="transform:rotate(45deg)">
           <line x1="16.9317" y1="0" x2="16.9317" y2="33" stroke="white" stroke-width="1.6"/>
           <line x1="33" y1="16.4489" x2="0" y2="16.4489" stroke="white" stroke-width="1.6"/>
         </svg>
@@ -234,19 +242,36 @@ body.raya-modal-open{overflow:hidden;touch-action:none}
   }
 
   function initColB(c,innerA,colRef){
-    function tryClone(){
-      const h=innerA.offsetHeight;
-      if(h<100){setTimeout(tryClone,150);return;}
-      loopH[c]=h;
-      const innerB=innerA.cloneNode(true);
-      innerB.className='col-inner';
-      // Fix 2: ensure gap is preserved in clone by setting top correctly
-      innerB.style.top=h+'px';
-      // Images in clone load from cache — no bump-in
-      colRef.appendChild(innerB);
-      colInnerB[c]=innerB;
+    // Wait until every image in innerA has loaded before cloning
+    // so the clone has correct natural heights — no text-only rows
+    const imgs=Array.from(innerA.querySelectorAll('img[data-src], img:not([data-src])'));
+    // Trigger lazy load for all images in innerA immediately
+    imgs.forEach(img=>{
+      const src=img.getAttribute('data-src');
+      if(src){img.src=src;img.removeAttribute('data-src');}
+    });
+
+    function allLoaded(){
+      return imgs.every(img=>img.complete&&img.naturalHeight>0);
     }
-    setTimeout(tryClone,80);
+
+    function tryClone(){
+      if(!allLoaded()){setTimeout(tryClone,100);return;}
+      // Brief extra delay to let layout settle after final image load
+      setTimeout(()=>{
+        const h=innerA.offsetHeight;
+        if(h<100){setTimeout(tryClone,100);return;}
+        loopH[c]=h;
+        const innerB=innerA.cloneNode(true);
+        innerB.className='col-inner';
+        innerB.style.top=h+'px';
+        colRef.appendChild(innerB);
+        colInnerB[c]=innerB;
+      },50);
+    }
+
+    // Start checking after a short initial delay
+    setTimeout(tryClone,200);
   }
 
   function build(){
@@ -270,6 +295,18 @@ body.raya-modal-open{overflow:hidden;touch-action:none}
   }
 
   build();
+
+  // Intro overlay
+  const intro=document.getElementById('raya-intro');
+  const galDiv=document.getElementById('raya-g');
+  document.getElementById('raya-launch').addEventListener('click',e=>{
+    e.preventDefault();
+    intro.style.transition='opacity 0.5s ease';
+    intro.style.opacity='0';
+    galDiv.style.opacity='1';
+    setTimeout(()=>intro.style.display='none',500);
+  });
+
   let resizeTimer;
   window.addEventListener('resize',()=>{
     clearTimeout(resizeTimer);
