@@ -39,7 +39,7 @@
 #raya-g.dim .gcard.hovered{filter:none;opacity:1}
 #raya-modal-img img{width:100%;height:auto;display:block}
 /* Fix 5: prevent body scroll when modal open */
-body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
+body.raya-modal-open{overflow:hidden}
 @media(max-width:600px){
   #raya-modal-layout{flex-direction:column !important}
   #raya-modal-img{width:100% !important}
@@ -63,7 +63,7 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
 
   // Append modal to body so it escapes gallery stacking context and overflow:hidden
   const modalEl=document.createElement('div');
-  modalEl.innerHTML=`<div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:10000;backdrop-filter:blur(4px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
+  modalEl.innerHTML=`<div id="raya-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(29,29,29,0.6);z-index:10000;backdrop-filter:blur(4px);overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
     <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:0 auto;position:relative;opacity:0;transform:translateY(16px)">
       <button id="raya-mc" style="position:absolute;top:0;right:0;width:44px;height:44px;background:rgba(29,29,29,0.05);border:none;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center">
         <svg id="raya-close-svg" width="20" height="20" viewBox="0 0 33 33" fill="none" style="transform:rotate(45deg)">
@@ -252,11 +252,11 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
       requestAnimationFrame(()=>{
         const h=innerA.offsetHeight;
         if(h<100){setTimeout(tryClone,200);return;}
-        loopH[c]=h;
+        loopH[c]=h+GAP; // include trailing gap so loop join matches inter-card spacing
 
         // Build innerB fresh (not cloneNode) so event listeners are properly attached
         const innerB=buildInner(c);
-        innerB.style.top=h+'px';
+        innerB.style.top=(h+GAP)+'px';
         // Images load from cache instantly
         innerB.querySelectorAll('img').forEach(img=>loadImg(img));
         colRef.appendChild(innerB);
@@ -265,7 +265,7 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
         // Keep loopH in sync as images load and heights settle
         if(window.ResizeObserver){
           new ResizeObserver(()=>{
-            const newH=innerA.offsetHeight;
+            const newH=innerA.offsetHeight+GAP;
             if(newH>100&&newH!==loopH[c]){
               loopH[c]=newH;
               innerB.style.top=(newH-pos[c])+'px';
@@ -381,11 +381,7 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
       imgWrap.style.background=tribe.bg;imgWrap.style.minHeight='200px';applyLayout();
     }
 
-    // Fix 3: lock body scroll, preserve scroll position
-    const scrollY=window.scrollY;
-    document.body.style.top=`-${scrollY}px`;
     document.body.classList.add('raya-modal-open');
-    document.body.dataset.scrollY=scrollY;
     modal.style.display='block';
     modal.scrollTop=0;
     modalInner.style.opacity='0';modalInner.style.transform='translateY(16px)';
@@ -397,11 +393,7 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
 
   function closeModal(){
     clearHover();
-    // Fix 3: restore body scroll position
-    const savedY=parseInt(document.body.dataset.scrollY||'0');
     document.body.classList.remove('raya-modal-open');
-    document.body.style.top='';
-    window.scrollTo(0,savedY);
     modalInner.style.transition='opacity 0.15s ease,transform 0.15s ease';
     modalInner.style.opacity='0';modalInner.style.transform='translateY(10px)';
     setTimeout(()=>{modal.style.display='none';modalInner.style.transition='';},160);
