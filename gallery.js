@@ -39,7 +39,7 @@
 #raya-g.dim .gcard.hovered{filter:none;opacity:1}
 #raya-modal-img img{width:100%;height:auto;display:block}
 /* Fix 5: prevent body scroll when modal open */
-body.raya-modal-open{overflow:hidden;touch-action:none}
+body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
 @media(max-width:600px){
   #raya-modal-layout{flex-direction:column !important}
   #raya-modal-img{width:100% !important}
@@ -52,14 +52,14 @@ body.raya-modal-open{overflow:hidden;touch-action:none}
 
   root.innerHTML=`
   <!-- Intro overlay -->
-  <div id="raya-intro" style="position:absolute;inset:0;background:#1d1d1d;z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;box-sizing:border-box">
+  <div id="raya-intro" style="position:absolute;inset:0;background:rgba(29,29,29,0.7);z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;box-sizing:border-box;color:#ffffff">
     <h1 class="heading-style-h1 mega">Rayots in motion</h1>
     <div class="spacer-small"></div>
     <p class="text-size-medium">Every photo a moment. Every moment a Rayot.</p>
     <div class="spacer-medium"></div>
     <a id="raya-launch" href="#" class="button is-red w-button">Launch</a>
   </div>
-  <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box;opacity:0;transition:opacity 0.6s ease"></div>
+  <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box"></div>
   <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:9999;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:32px 16px;box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch">
     <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:auto;position:relative;opacity:0;transform:translateY(16px)">
       <!-- Fix 1: close button always inside modal-inner, top-right corner -->
@@ -248,7 +248,14 @@ body.raya-modal-open{overflow:hidden;touch-action:none}
     // Trigger lazy load for all images in innerA immediately
     imgs.forEach(img=>{
       const src=img.getAttribute('data-src');
-      if(src){img.src=src;img.removeAttribute('data-src');}
+      if(src){
+        img.src=src;
+        img.removeAttribute('data-src');
+        img.addEventListener('load',()=>requestAnimationFrame(()=>img.classList.add('loaded')),{once:true});
+        img.addEventListener('error',()=>img.classList.add('loaded'),{once:true});
+        // Already cached
+        if(img.complete&&img.naturalHeight>0) img.classList.add('loaded');
+      }
     });
 
     function allLoaded(){
@@ -303,7 +310,6 @@ body.raya-modal-open{overflow:hidden;touch-action:none}
     e.preventDefault();
     intro.style.transition='opacity 0.5s ease';
     intro.style.opacity='0';
-    galDiv.style.opacity='1';
     setTimeout(()=>intro.style.display='none',500);
   });
 
@@ -379,8 +385,11 @@ body.raya-modal-open{overflow:hidden;touch-action:none}
       imgWrap.style.background=tribe.bg;imgWrap.style.minHeight='200px';applyLayout();
     }
 
-    // Fix 5: lock body scroll when modal opens
+    // Fix 3: lock body scroll, preserve scroll position
+    const scrollY=window.scrollY;
+    document.body.style.top=`-${scrollY}px`;
     document.body.classList.add('raya-modal-open');
+    document.body.dataset.scrollY=scrollY;
     modal.style.display='flex';
     modal.scrollTop=0;
     modalInner.style.opacity='0';modalInner.style.transform='translateY(16px)';
@@ -392,8 +401,11 @@ body.raya-modal-open{overflow:hidden;touch-action:none}
 
   function closeModal(){
     clearHover();
-    // Fix 5: restore body scroll
+    // Fix 3: restore body scroll position
+    const savedY=parseInt(document.body.dataset.scrollY||'0');
     document.body.classList.remove('raya-modal-open');
+    document.body.style.top='';
+    window.scrollTo(0,savedY);
     modalInner.style.transition='opacity 0.15s ease,transform 0.15s ease';
     modalInner.style.opacity='0';modalInner.style.transform='translateY(10px)';
     setTimeout(()=>{modal.style.display='none';modalInner.style.transition='';},160);
