@@ -60,8 +60,8 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
     <a id="raya-launch" href="#" class="button is-red w-button">Launch</a>
   </div>
   <div id="raya-g" style="height:100%;padding:10px;box-sizing:border-box"></div>
-  <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:9999;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:32px 16px;box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch">
-    <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:auto;position:relative;opacity:0;transform:translateY(16px)">
+  <div id="raya-modal" style="display:none;position:fixed;inset:0;background:rgba(29,29,29,0.6);z-index:9999;backdrop-filter:blur(4px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:40px 16px 60px;box-sizing:border-box">
+    <div id="raya-modal-inner" style="max-width:900px;width:100%;margin:0 auto;position:relative;opacity:0;transform:translateY(16px)">
       <!-- Fix 1: close button always inside modal-inner, top-right corner -->
       <button id="raya-mc" style="position:absolute;top:0;right:0;width:44px;height:44px;background:rgba(29,29,29,0.05);border:none;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center">
         <svg id="raya-close-svg" width="20" height="20" viewBox="0 0 33 33" fill="none" style="transform:rotate(45deg)">
@@ -104,19 +104,15 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
     if(w<480)return 2;if(w<768)return 3;if(w<1024)return 4;return 5;
   }
 
-  const io=new IntersectionObserver(entries=>{
-    entries.forEach(e=>{
-      if(!e.isIntersecting)return;
-      const img=e.target;
-      const src=img.getAttribute('data-src');
-      if(src){
-        img.src=src;img.removeAttribute('data-src');
-        img.addEventListener('load',()=>requestAnimationFrame(()=>img.classList.add('loaded')),{once:true});
-        img.addEventListener('error',()=>img.classList.add('loaded'),{once:true});
-      }
-      io.unobserve(img);
-    });
-  },{rootMargin:'500px 0px'});
+  // Load images immediately — needed so all heights are correct before cloning
+  function loadImg(img){
+    if(img.complete&&img.naturalHeight>0){
+      img.classList.add('loaded');
+      return;
+    }
+    img.addEventListener('load',()=>requestAnimationFrame(()=>img.classList.add('loaded')),{once:true});
+    img.addEventListener('error',()=>img.classList.add('loaded'),{once:true});
+  }
 
   function clearHover(){
     gal.classList.remove('dim');
@@ -141,10 +137,10 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
     card.style.background=tribe.bg+'18';
     if(item.imageSrc){
       const img=document.createElement('img');
-      img.setAttribute('data-src',item.imageSrc);
+      img.src=item.imageSrc;
       img.alt=item.student;
       card.appendChild(img);
-      io.observe(img);
+      loadImg(img);
     }
     const footer=document.createElement('div');footer.className='gcard-footer';
     const nameEl=document.createElement('span');nameEl.className='gcard-name';nameEl.textContent=item.student;
@@ -242,21 +238,7 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
   }
 
   function initColB(c,innerA,colRef){
-    // Wait until every image in innerA has loaded before cloning
-    // so the clone has correct natural heights — no text-only rows
-    const imgs=Array.from(innerA.querySelectorAll('img[data-src], img:not([data-src])'));
-    // Trigger lazy load for all images in innerA immediately
-    imgs.forEach(img=>{
-      const src=img.getAttribute('data-src');
-      if(src){
-        img.src=src;
-        img.removeAttribute('data-src');
-        img.addEventListener('load',()=>requestAnimationFrame(()=>img.classList.add('loaded')),{once:true});
-        img.addEventListener('error',()=>img.classList.add('loaded'),{once:true});
-        // Already cached
-        if(img.complete&&img.naturalHeight>0) img.classList.add('loaded');
-      }
-    });
+    const imgs=Array.from(innerA.querySelectorAll('img'));
 
     function allLoaded(){
       return imgs.every(img=>img.complete&&img.naturalHeight>0);
@@ -264,21 +246,25 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
 
     function tryClone(){
       if(!allLoaded()){setTimeout(tryClone,100);return;}
-      // Brief extra delay to let layout settle after final image load
-      setTimeout(()=>{
+      // One extra frame to let browser finish layout
+      requestAnimationFrame(()=>{
         const h=innerA.offsetHeight;
-        if(h<100){setTimeout(tryClone,100);return;}
+        if(h<100){setTimeout(tryClone,200);return;}
         loopH[c]=h;
         const innerB=innerA.cloneNode(true);
         innerB.className='col-inner';
         innerB.style.top=h+'px';
+        // Mark all cloned images as loaded since they copy src from already-loaded originals
+        innerB.querySelectorAll('img').forEach(img=>{
+          if(img.complete&&img.naturalHeight>0) img.classList.add('loaded');
+          else loadImg(img);
+        });
         colRef.appendChild(innerB);
         colInnerB[c]=innerB;
-      },50);
+      });
     }
 
-    // Start checking after a short initial delay
-    setTimeout(tryClone,200);
+    setTimeout(tryClone,100);
   }
 
   function build(){
@@ -305,7 +291,6 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
 
   // Intro overlay
   const intro=document.getElementById('raya-intro');
-  const galDiv=document.getElementById('raya-g');
   document.getElementById('raya-launch').addEventListener('click',e=>{
     e.preventDefault();
     intro.style.transition='opacity 0.5s ease';
@@ -390,7 +375,7 @@ body.raya-modal-open{overflow:hidden;position:fixed;width:100%}
     document.body.style.top=`-${scrollY}px`;
     document.body.classList.add('raya-modal-open');
     document.body.dataset.scrollY=scrollY;
-    modal.style.display='flex';
+    modal.style.display='block';
     modal.scrollTop=0;
     modalInner.style.opacity='0';modalInner.style.transform='translateY(16px)';
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
