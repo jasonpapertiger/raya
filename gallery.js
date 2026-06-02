@@ -161,12 +161,29 @@ body.raya-modal-open{overflow:hidden}
     return card;
   }
 
+  // Seeded shuffle — deterministic per column, different each time called with different seed
+  function seededShuffle(arr,seed){
+    const a=[...arr];
+    let s=seed;
+    for(let i=a.length-1;i>0;i--){
+      s=(s*1664525+1013904223)&0xffffffff;
+      const j=Math.abs(s)%(i+1);
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
   function buildInner(c){
     const inner=document.createElement('div');
     inner.className='col-inner';inner.style.top='0';
-    const offset=Math.floor((items.length/numCols)*c)%items.length;
-    const ordered=items.slice(offset).concat(items.slice(0,offset));
-    ordered.forEach(item=>inner.appendChild(makeCard(item,c)));
+    // Build 3 shuffled passes of items, each with a different seed
+    // so the column is 3x longer and each third looks different
+    const passes=[
+      seededShuffle(items, c*1000+1),
+      seededShuffle(items, c*1000+2),
+      seededShuffle(items, c*1000+3),
+    ];
+    passes.forEach(pass=>pass.forEach(item=>inner.appendChild(makeCard(item,c))));
     return inner;
   }
 
