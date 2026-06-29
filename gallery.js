@@ -50,16 +50,6 @@ body.raya-modal-open{overflow:hidden}
   const root=document.getElementById('raya-gallery-root');
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
 
-  // data-lenis-prevent on the root (set in Webflow embed) tells Lenis to ignore wheel
-  // events over the gallery. Since the gallery has no native scroll, those events are lost
-  // and the page requires multiple swipes. Forward wheel events to Lenis manually instead.
-  root.addEventListener('wheel', e => {
-    if (!drag.on && window.lenis) {
-      const base = window.lenis.targetScroll ?? window.lenis.scroll ?? window.scrollY;
-      window.lenis.scrollTo(base + e.deltaY);
-    }
-  }, { passive: true });
-
   root.innerHTML=`
   <!-- Intro overlay -->
   <div id="raya-intro" style="position:absolute;inset:0;background:rgba(29,29,29,0.7);z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;box-sizing:border-box;color:#ffffff">
