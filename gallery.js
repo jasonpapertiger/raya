@@ -340,7 +340,16 @@ body.raya-modal-open{overflow:hidden}
     resizeTimer=setTimeout(()=>{if(getCols()!==numCols)build();},200);
   });
 
+  let ticking=false,colsReady=false,galVisible=true;
+
+  function maybeStartTick(){
+    if(colsReady&&galVisible&&!ticking){
+      ticking=true;lastT=null;requestAnimationFrame(tick);
+    }
+  }
+
   function tick(ts){
+    if(!ticking)return;
     if(!lastT)lastT=ts;
     const dt=Math.min(ts-lastT,50);lastT=ts;
     for(let c=0;c<numCols;c++){
@@ -354,10 +363,19 @@ body.raya-modal-open{overflow:hidden}
     }
     requestAnimationFrame(tick);
   }
-  // Delay animation until all columns have cloned and measured
+
+  // Pause tick when gallery is off-screen so it doesn't compete with Lenis during scroll
+  if(window.IntersectionObserver){
+    new IntersectionObserver(entries=>{
+      galVisible=entries[0].isIntersecting;
+      if(galVisible)maybeStartTick();
+      else ticking=false;
+    },{threshold:0}).observe(root);
+  }
+
   function waitForAllCols(){
     const allReady=colInnerA.every((_,i)=>!!colInnerB[i]&&loopH[i]>100);
-    if(allReady){requestAnimationFrame(tick);}
+    if(allReady){colsReady=true;maybeStartTick();}
     else{setTimeout(waitForAllCols,50);}
   }
   waitForAllCols();
