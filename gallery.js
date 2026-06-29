@@ -279,16 +279,7 @@ body.raya-modal-open{overflow:hidden}
         colRef.appendChild(innerB);
         colInnerB[c]=innerB;
 
-        // Keep loopH in sync as images load and heights settle
-        if(window.ResizeObserver){
-          new ResizeObserver(()=>{
-            const newH=innerA.offsetHeight+GAP;
-            if(newH>100&&newH!==loopH[c]){
-              loopH[c]=newH;
-              innerB.style.top=(newH-pos[c])+'px';
-            }
-          }).observe(innerA);
-        }
+        // loopH locked after clone — no further height updates
       });
     }
 
@@ -345,7 +336,13 @@ body.raya-modal-open{overflow:hidden}
     }
     requestAnimationFrame(tick);
   }
-  requestAnimationFrame(tick);
+  // Delay animation until all columns have cloned and measured
+  function waitForAllCols(){
+    const allReady=colInnerA.every((_,i)=>!!colInnerB[i]&&loopH[i]>100);
+    if(allReady){requestAnimationFrame(tick);}
+    else{setTimeout(waitForAllCols,50);}
+  }
+  waitForAllCols();
 
   // ── Modal ────────────────────────────────────────────────────────────────────
   function openModal(item){
