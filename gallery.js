@@ -23,7 +23,7 @@
   const style=document.createElement('style');
   style.textContent=`
 #raya-gallery-root{background:#1d1d1d}
-#raya-gallery-root .gc{overflow:hidden;height:100%;position:relative;cursor:grab;user-select:none;-webkit-user-select:none;will-change:transform}
+#raya-gallery-root .gc{overflow:hidden;height:100%;position:relative;cursor:grab;user-select:none;-webkit-user-select:none}
 #raya-gallery-root .gc.dragging{cursor:grabbing}
 #raya-gallery-root .col-inner{position:absolute;left:0;right:0;display:flex;flex-direction:column;gap:10px;will-change:transform}
 #raya-gallery-root .gcard{position:relative;overflow:hidden;flex-shrink:0;cursor:pointer;transition:filter 0.3s,opacity 0.3s}
