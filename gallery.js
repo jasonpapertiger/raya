@@ -50,9 +50,8 @@ body.raya-modal-open{overflow:hidden}
   const root=document.getElementById('raya-gallery-root');
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
 
-  // Isolate the gallery from page layout/paint so Lenis scroll isn't affected by column animations
-  root.style.overflow='hidden';
-  root.style.contain='layout paint';
+  // Prevent rubber-band bounce at section boundary without absorbing scroll events
+  root.style.overscrollBehavior='none';
 
   root.innerHTML=`
   <!-- Intro overlay -->
