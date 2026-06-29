@@ -23,9 +23,9 @@
   const style=document.createElement('style');
   style.textContent=`
 #raya-gallery-root{background:#1d1d1d}
-#raya-gallery-root .gc{overflow:hidden;height:100%;position:relative;cursor:grab;user-select:none;-webkit-user-select:none}
+#raya-gallery-root .gc{overflow:hidden;height:100%;position:relative;cursor:grab;user-select:none;-webkit-user-select:none;will-change:transform}
 #raya-gallery-root .gc.dragging{cursor:grabbing}
-#raya-gallery-root .col-inner{position:absolute;left:0;right:0;display:flex;flex-direction:column;gap:10px}
+#raya-gallery-root .col-inner{position:absolute;left:0;right:0;display:flex;flex-direction:column;gap:10px;will-change:transform}
 #raya-gallery-root .gcard{position:relative;overflow:hidden;flex-shrink:0;cursor:pointer;transition:filter 0.3s,opacity 0.3s}
 #raya-gallery-root .gcard img{width:100%;height:auto;display:block;vertical-align:top;opacity:0;transition:opacity 0.5s ease}
 #raya-gallery-root .gcard img.loaded{opacity:1}
@@ -273,22 +273,13 @@ body.raya-modal-open{overflow:hidden}
 
         // Build innerB fresh (not cloneNode) so event listeners are properly attached
         const innerB=buildInner(c);
-        innerB.style.top=(h+GAP)+'px';
+        innerB.style.cssText=`position:absolute;left:0;right:0;top:0;will-change:transform;transform:translateY(${h+GAP}px)`;
         // Images load from cache instantly
         innerB.querySelectorAll('img').forEach(img=>loadImg(img));
         colRef.appendChild(innerB);
         colInnerB[c]=innerB;
 
-        // Keep loopH in sync as images load and heights settle
-        if(window.ResizeObserver){
-          new ResizeObserver(()=>{
-            const newH=innerA.offsetHeight+GAP;
-            if(newH>100&&newH!==loopH[c]){
-              loopH[c]=newH;
-              innerB.style.top=(newH-pos[c])+'px';
-            }
-          }).observe(innerA);
-        }
+        // loopH locked after clone — no further height updates
       });
     }
 
@@ -340,12 +331,18 @@ body.raya-modal-open{overflow:hidden}
       const lh=loopH[c];if(!lh||!colInnerB[c])continue;
       pos[c]+=speeds[c]*dt;
       pos[c]=((pos[c]%lh)+lh)%lh;
-      colInnerA[c].style.top=(-pos[c])+'px';
-      colInnerB[c].style.top=(lh-pos[c])+'px';
+      colInnerA[c].style.transform=`translateY(${-pos[c]}px)`;
+      colInnerB[c].style.transform=`translateY(${lh-pos[c]}px)`;
     }
     requestAnimationFrame(tick);
   }
-  requestAnimationFrame(tick);
+  // Delay animation until all columns have cloned and measured
+  function waitForAllCols(){
+    const allReady=colInnerA.every((_,i)=>!!colInnerB[i]&&loopH[i]>100);
+    if(allReady){requestAnimationFrame(tick);}
+    else{setTimeout(waitForAllCols,50);}
+  }
+  waitForAllCols();
 
   // ── Modal ────────────────────────────────────────────────────────────────────
   function openModal(item){
