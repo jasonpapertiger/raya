@@ -50,6 +50,10 @@ body.raya-modal-open{overflow:hidden}
   const root=document.getElementById('raya-gallery-root');
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
 
+  // Isolate the gallery from page layout/paint so Lenis scroll isn't affected by column animations
+  root.style.overflow='hidden';
+  root.style.contain='layout paint';
+
   root.innerHTML=`
   <!-- Intro overlay -->
   <div id="raya-intro" style="position:absolute;inset:0;background:rgba(29,29,29,0.7);z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;box-sizing:border-box;color:#ffffff">
