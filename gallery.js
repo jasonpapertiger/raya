@@ -235,25 +235,42 @@ body.raya-modal-open{overflow:hidden}
       if(drag.on&&drag.col===c)onEnd();
     });
 
-    // Touch events — Fix 7: passive listeners, no interference with page scroll
+    // Touch events — defer drag.on until intent is confirmed so Lenis can page-scroll freely
+    let tStartX=0,tStartY=0,tDecided=false,tIsCol=false;
+
     colEl.addEventListener('touchstart',e=>{
-      // Only take over if touch is clearly vertical drag intent
-      onStart(e.touches[0].clientY);
+      tStartX=e.touches[0].clientX;
+      tStartY=e.touches[0].clientY;
+      tDecided=false;tIsCol=false;
+      pointerDown=true;
+      drag.col=c;
+      drag.startY=tStartY;drag.startPos=pos[c];
+      drag.prevY=tStartY;drag.prevT=performance.now();
+      drag.vy=0;drag.moved=false;
     },{passive:true});
 
     colEl.addEventListener('touchmove',e=>{
-      if(!drag.on||drag.col!==c)return;
-      const dy=Math.abs(e.touches[0].clientY-drag.startY);
-      const dx=Math.abs(e.touches[0].clientX-(drag.startX||e.touches[0].clientX));
-      // Only prevent default if clearly scrolling vertically in column
-      if(dy>dx&&dy>8){
-        e.preventDefault();
-        onMove(e.touches[0].clientY);
+      if(!pointerDown||drag.col!==c)return;
+      const dy=Math.abs(e.touches[0].clientY-tStartY);
+      const dx=Math.abs(e.touches[0].clientX-tStartX);
+      if(!tDecided){
+        if(dy<6&&dx<6)return;
+        if(dx>=dy){
+          // Horizontal — let Lenis/browser handle page scroll
+          tDecided=true;tIsCol=false;pointerDown=false;return;
+        }
+        // Vertical — take over as column drag
+        tDecided=true;tIsCol=true;
+        drag.on=true;colEl.classList.add('dragging');
       }
+      if(!tIsCol)return;
+      e.preventDefault();
+      onMove(e.touches[0].clientY);
     },{passive:false});
 
     colEl.addEventListener('touchend',()=>{
-      if(drag.on&&drag.col===c)onEnd();
+      if(tIsCol&&drag.on&&drag.col===c)onEnd();
+      pointerDown=false;tDecided=false;tIsCol=false;
     },{passive:true});
   }
 
