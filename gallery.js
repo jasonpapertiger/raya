@@ -50,7 +50,17 @@ body.raya-modal-open{overflow:hidden}
   const root=document.getElementById('raya-gallery-root');
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
 
-  // Prevent rubber-band bounce at section boundary without absorbing scroll events
+  // Walk up to the Webflow section wrapper and clear overflow:hidden so it doesn't
+  // absorb wheel events before they reach Lenis (causing the 3-swipe delay)
+  let _p=root.parentElement;
+  while(_p&&_p!==document.body){
+    const _s=getComputedStyle(_p);
+    if(_s.overflow==='hidden'||_s.overflowY==='hidden'){
+      _p.style.overflow='visible';
+      _p.style.overscrollBehavior='none';
+    }
+    _p=_p.parentElement;
+  }
   root.style.overscrollBehavior='none';
 
   root.innerHTML=`
