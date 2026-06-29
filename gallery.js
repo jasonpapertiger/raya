@@ -50,9 +50,15 @@ body.raya-modal-open{overflow:hidden}
   const root=document.getElementById('raya-gallery-root');
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
 
-  // data-lenis-prevent on the root tells Lenis to drop wheel events over this element.
-  // Since the gallery has no internal scroll, that causes the multi-swipe delay. Remove it.
-  root.removeAttribute('data-lenis-prevent');
+  // data-lenis-prevent on the root (set in Webflow embed) tells Lenis to ignore wheel
+  // events over the gallery. Since the gallery has no native scroll, those events are lost
+  // and the page requires multiple swipes. Forward wheel events to Lenis manually instead.
+  root.addEventListener('wheel', e => {
+    if (!drag.on && window.lenis) {
+      const base = window.lenis.targetScroll ?? window.lenis.scroll ?? window.scrollY;
+      window.lenis.scrollTo(base + e.deltaY);
+    }
+  }, { passive: true });
 
   root.innerHTML=`
   <!-- Intro overlay -->
