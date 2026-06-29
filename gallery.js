@@ -50,6 +50,14 @@ body.raya-modal-open{overflow:hidden}
   const root=document.getElementById('raya-gallery-root');
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
 
+  // data-lenis-prevent (set in the Webflow embed) makes Lenis ignore wheel events over the
+  // gallery, so the page locks until enough native scroll accumulates (the multi-swipe delay).
+  // Remove it so Lenis handles wheel normally. The tick loop below freezes the gallery's own
+  // animation while the user is actively scrolling so the two don't compete and cause jitter.
+  root.removeAttribute('data-lenis-prevent');
+  let lastWheelT=0;
+  window.addEventListener('wheel',()=>{lastWheelT=performance.now();},{passive:true});
+
   root.innerHTML=`
   <!-- Intro overlay -->
   <div id="raya-intro" style="position:absolute;inset:0;background:rgba(29,29,29,0.7);z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;box-sizing:border-box;color:#ffffff">
@@ -352,14 +360,20 @@ body.raya-modal-open{overflow:hidden}
     if(!ticking)return;
     if(!lastT)lastT=ts;
     const dt=Math.min(ts-lastT,50);lastT=ts;
-    for(let c=0;c<numCols;c++){
-      const lh=loopH[c];if(!lh||!colInnerB[c])continue;
-      if(!(drag.on&&drag.col===c)){
-        pos[c]+=speeds[c]*dt;
-        pos[c]=((pos[c]%lh)+lh)%lh;
+    // While the user is actively scrolling the page, freeze the gallery animation so it
+    // doesn't composite/repaint in competition with Lenis (which caused scroll-through jitter).
+    // Dragging a column is exempt since that's a deliberate interaction, not page scroll.
+    const userScrolling=(performance.now()-lastWheelT)<140;
+    if(!userScrolling||drag.on){
+      for(let c=0;c<numCols;c++){
+        const lh=loopH[c];if(!lh||!colInnerB[c])continue;
+        if(!(drag.on&&drag.col===c)){
+          pos[c]+=speeds[c]*dt;
+          pos[c]=((pos[c]%lh)+lh)%lh;
+        }
+        colInnerA[c].style.transform=`translateY(${-pos[c]}px)`;
+        colInnerB[c].style.transform=`translateY(${lh-pos[c]}px)`;
       }
-      colInnerA[c].style.transform=`translateY(${-pos[c]}px)`;
-      colInnerB[c].style.transform=`translateY(${lh-pos[c]}px)`;
     }
     requestAnimationFrame(tick);
   }
