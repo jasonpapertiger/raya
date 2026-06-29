@@ -50,18 +50,9 @@ body.raya-modal-open{overflow:hidden}
   const root=document.getElementById('raya-gallery-root');
   if(!root){console.warn('[Raya Gallery] #raya-gallery-root not found.');return;}
 
-  // Walk up to the Webflow section wrapper and clear overflow:hidden so it doesn't
-  // absorb wheel events before they reach Lenis (causing the 3-swipe delay)
-  let _p=root.parentElement;
-  while(_p&&_p!==document.body){
-    const _s=getComputedStyle(_p);
-    if(_s.overflow==='hidden'||_s.overflowY==='hidden'){
-      _p.style.overflow='visible';
-      _p.style.overscrollBehavior='none';
-    }
-    _p=_p.parentElement;
-  }
-  root.style.overscrollBehavior='none';
+  // data-lenis-prevent on the root tells Lenis to drop wheel events over this element.
+  // Since the gallery has no internal scroll, that causes the multi-swipe delay. Remove it.
+  root.removeAttribute('data-lenis-prevent');
 
   root.innerHTML=`
   <!-- Intro overlay -->
