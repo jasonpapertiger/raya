@@ -327,10 +327,11 @@ body.raya-modal-open{overflow:hidden}
     if(!lastT)lastT=ts;
     const dt=Math.min(ts-lastT,50);lastT=ts;
     for(let c=0;c<numCols;c++){
-      if(drag.on&&drag.col===c)continue;
       const lh=loopH[c];if(!lh||!colInnerB[c])continue;
-      pos[c]+=speeds[c]*dt;
-      pos[c]=((pos[c]%lh)+lh)%lh;
+      if(!(drag.on&&drag.col===c)){
+        pos[c]+=speeds[c]*dt;
+        pos[c]=((pos[c]%lh)+lh)%lh;
+      }
       colInnerA[c].style.transform=`translateY(${-pos[c]}px)`;
       colInnerB[c].style.transform=`translateY(${lh-pos[c]}px)`;
     }
