@@ -54,6 +54,10 @@
         50%      { opacity: 0.5; transform: scale(0.75); }
     }
     .chat-fab.fab--chat-open { opacity: 0 !important; pointer-events: none !important; }
+    /* On mobile, raise the pill so it clears the bottom CTA bar */
+    @media (max-width: 767px) {
+        .chat-fab { bottom: 58px; }
+    }
     `;
     document.head.appendChild(style);
 
